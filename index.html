@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ScheduleLLM - 课程表解析工具</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
     <!-- SheetJS for Excel processing -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -62,7 +63,7 @@
                             value="https://dashscope.aliyuncs.com/compatible-mode/v1">
 
                         <label>API Key</label>
-                        <input type="password" id="llmApiKey" placeholder="sk-...">
+                        <input type="password" id="llmApiKey" name="llmApiKey" placeholder="sk-..." autocomplete="off">
 
                         <label>模型名称</label>
                         <input type="text" id="llmModel" placeholder="qwen-flash" value="qwen-flash">
