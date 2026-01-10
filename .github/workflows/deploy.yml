@@ -23,7 +23,13 @@ jobs:
         run: node inject_env.js
         env:
           API_KEY: ${{ secrets.API_KEY }}
-
+          
+      - name: Allow config.js to be published (CI only)
+        run: |
+          if [ -f .gitignore ]; then
+            sed -i '/^config\.js$/d' .gitignore
+          fi
+          
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
