@@ -19,7 +19,7 @@ jobs:
           node-version: '20'
 
       - name: Generate config.js
-        # Generates config.js from secrets
+        # Generates config.js from secrets 
         run: node inject_env.js
         env:
           API_KEY: ${{ secrets.API_KEY }}
