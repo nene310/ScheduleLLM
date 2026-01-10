@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScheduleLLM - 课程表解析工具</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- SheetJS for Excel processing -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Configuration Area -->
+        <aside class="config-panel no-print">
+            <h1>ScheduleLLM</h1>
+
+            <div class="config-group">
+                <label class="btn-primary">
+                    选择 Excel 课表
+                    <input type="file" id="fileUpload" accept=".xlsx, .xls" hidden>
+                </label>
+                <p id="fileName" class="status-text">未选择文件</p>
+            </div>
+
+            <div class="config-group">
+                <label>开学第一周周一</label>
+                <input type="date" id="semesterStart" value="2025-09-01">
+            </div>
+
+            <div class="config-group">
+                <h3>节次时间设置</h3>
+                <div id="timeSettingsPanel" class="time-settings-panel" title="可自定义调整各节次时间">
+                    <div id="timeSettingsHeader" class="time-settings-header" role="button" tabindex="0" aria-expanded="false">
+                        <span id="timeSettingsToggleIcon" class="time-settings-toggle-icon" aria-hidden="true">∨</span>
+                        <div class="time-settings-header-text">
+                            <div id="timeSettingsSummary" class="time-settings-summary">第1节</div>
+                            <div id="timeSettingsHint" class="time-settings-hint">点击展开查看完整课表时间</div>
+                        </div>
+                    </div>
+                    <div class="time-settings-body">
+                        <div id="timeSettingsAlways" class="time-settings" aria-label="第1节时间设置"></div>
+                        <div id="timeSettingsExtraWrap" class="time-settings-extra-wrap" aria-hidden="true">
+                            <div id="timeSettingsExtra" class="time-settings" aria-label="完整节次时间设置"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="config-group" style="border-top: 1px solid #eee; padding-top: 1rem;">
+                <h3>LLM 智能解析 (可选)</h3>
+                <div class="llm-settings">
+                    <label
+                        style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin-bottom: 0.8rem;">
+                        <input type="checkbox" id="useLLM" checked> 开启 LLM 智能识别 (Qwen/通义千问)
+                    </label>
+                    <div id="llmConfigFields" style="display: none;">
+                        <label>API Base URL</label>
+                        <input type="text" id="llmBaseUrl" placeholder="https://dashscope.aliyuncs.com/compatible-mode/v1"
+                            value="https://dashscope.aliyuncs.com/compatible-mode/v1">
+
+                        <label>API Key</label>
+                        <input type="password" id="llmApiKey" placeholder="sk-...">
+
+                        <label>模型名称</label>
+                        <input type="text" id="llmModel" placeholder="qwen-turbo" value="qwen-turbo">
+
+                        <p style="font-size: 0.7rem; color: #888; margin-top: 0.5rem;">
+                            * 推荐使用阿里云通义千问 (Qwen) 以获得最佳中文解析效果。
+                        </p>
+                    </div>
+                </div>
+                <div style="margin-top: 1rem; text-align: center;">
+                    <a href="mailto:support@schedulellm.com?subject=ScheduleLLM%20Parsing%20Feedback" id="feedbackLink" style="font-size: 0.8rem; color: #2563eb; text-decoration: none;">遇到识别错误？点击反馈</a>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button id="btnGenerate" class="btn-action">生成月历</button>
+                <div class="export-group" style="border-top: 1px solid #eee; margin-top: 1rem; padding-top: 0.5rem;">
+                    <label for="exportTarget"
+                        style="display:block; font-size:0.8rem; color:#666; margin-bottom:0.3rem;">选择ICS日历导出格式：</label>
+                    <select id="exportTarget" class="btn-secondary" style="margin-bottom: 0.5rem; width: 100%;">
+                        <option value="universal">通用 (Universal)</option>
+                        <option value="ios">iPhone (iOS)</option>
+                        <option value="android">Android (Google)</option>
+                        <option value="windows">Windows (Outlook)</option>
+                        <option value="vcard">通讯录 (vCard/VCF)</option>
+                    </select>
+                    <button id="btnExport" class="btn-secondary">导出 ICS/VCF</button>
+                    <button id="btnSaveHtml" class="btn-secondary">保存为网页 (HTML)</button>
+                </div>
+                <button id="btnPrint" class="btn-secondary">打印月历</button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <div id="llmProgressHost" class="llm-progress-host no-print" style="display:none;">
+                <div class="llm-progress-card">
+                    <div class="llm-progress-head">
+                        <div class="llm-progress-title">LLM 识别进度</div>
+                        <div class="llm-progress-actions">
+                            <span id="llmProgressIcon" class="llm-progress-icon" style="display:none;"></span>
+                            <span id="llmProgressText" class="llm-progress-text">准备中</span>
+                            <button id="llmProgressRetry" class="llm-retry-btn" type="button" style="display:none;">重试</button>
+                        </div>
+                    </div>
+                    <div class="llm-progress-bar">
+                        <div id="llmProgressFill" class="llm-progress-fill" style="width:0%;"></div>
+                    </div>
+                    <div class="llm-progress-meta">
+                        <span id="llmProgressPct" class="llm-progress-pct">0%</span>
+                        <span id="llmProgressCount" class="llm-progress-count">0/0</span>
+                    </div>
+                    <div id="llmProgressError" class="llm-error-banner" style="display:none;">
+                        <span id="llmProgressErrorText" class="llm-error-text"></span>
+                        <button id="llmProgressErrorRetry" class="llm-error-retry" type="button">重试</button>
+                    </div>
+                </div>
+
+                <details id="llmRecognizedPanel" class="llm-recognized-panel" open aria-label="课程面板">
+                    <summary class="llm-recognized-summary" aria-label="展开或收起课程面板">
+                        <span id="llmRecognizedLabel" class="llm-recognized-summary-label">已识别课程</span>
+                        <span id="llmRecognizedSummary" class="llm-recognized-summary-count">0</span>
+                    </summary>
+                    <div class="llm-recognized-body" role="region" aria-label="课程列表与详情">
+                        <ul id="llmRecognizedList" class="llm-recognized-list" aria-label="已识别课程列表"></ul>
+                        <div id="llmCourseDetail" class="llm-course-detail" role="region" aria-label="课程详情" style="display:none;"></div>
+                    </div>
+                </details>
+            </div>
+
+            <div id="llmHint" class="llm-hint no-print" aria-label="LLM 提示">
+                <p class="llm-hint-text">本工具默认启用大语言模型（LLM）对课程表进行智能识别，通常可在 1 分钟内完成。如需更快生成结果，可取消勾选“开启 LLM 智能识别”，但识别准确性可能降低。</p>
+            </div>
+
+            <div id="calendarArea" class="calendar-container">
+                <div class="placeholder-text">请上传课表并生成月历</div>
+            </div>
+
+            <section id="courseListPanel" class="course-list-panel no-print" aria-label="课程列表">
+                <button id="courseListToggle" class="course-list-toggle" type="button" aria-expanded="false">
+                    <span class="course-list-toggle-title">课程列表</span>
+                    <span id="courseListSummary" class="course-list-toggle-count">0</span>
+                    <span class="course-list-toggle-chevron" aria-hidden="true"></span>
+                </button>
+                <div id="courseListBody" class="course-list-body" role="region" aria-label="课程列表内容">
+                    <div id="courseListContent" class="course-list-content">
+                        <div class="course-list-empty">生成月历后显示</div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <!-- Runtime Configuration (Optional) -->
+    <script src="config.js" onerror="console.log('No external config found, using manual input.')"></script>
+    <script src="llm_parser.js"></script>
+    <script src="script.js"></script>
+    <script data-goatcounter="https://nene310.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+
+</html>
