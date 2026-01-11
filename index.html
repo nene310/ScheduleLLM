@@ -57,12 +57,12 @@
                         <input type="checkbox" id="useLLM" checked> 开启 LLM 智能识别 (Qwen/通义千问)
                     </label>
                     <div id="llmConfigFields" style="display: none;">
-                        <label>API Base URL</label>
-                        <input type="text" id="llmBaseUrl" placeholder="https://dashscope.aliyuncs.com/compatible-mode/v1"
-                            value="https://dashscope.aliyuncs.com/compatible-mode/v1">
+                        <label>后端接口地址</label>
+                        <input type="text" id="llmBaseUrl" placeholder="/api/llm"
+                            value="http://8.152.168.126/api/llm">
 
-                        <label>API Key</label>
-                        <input type="password" id="llmApiKey" placeholder="sk-...">
+                        <label>API Key（仅本地直连调试时需要）</label>
+                        <input type="password" id="llmApiKey" placeholder="sk-..." autocomplete="off">
 
                         <label>模型名称</label>
                         <input type="text" id="llmModel" placeholder="qwen-flash" value="qwen-flash">
