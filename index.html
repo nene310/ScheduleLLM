@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ScheduleLLM - 课程表解析工具</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="icon" href="favicon.ico" type="image/x-icon">
     <!-- SheetJS for Excel processing -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -58,12 +57,12 @@
                         <input type="checkbox" id="useLLM" checked> 开启 LLM 智能识别 (Qwen/通义千问)
                     </label>
                     <div id="llmConfigFields" style="display: none;">
-                        <label>API Base URL</label>
-                        <input type="text" id="llmBaseUrl" placeholder="https://dashscope.aliyuncs.com/compatible-mode/v1"
-                            value="https://dashscope.aliyuncs.com/compatible-mode/v1">
+                        <label>后端接口地址</label>
+                        <input type="text" id="llmBaseUrl" placeholder="/api/llm"
+                            value="http://8.152.168.126/api/llm">
 
-                        <label>API Key</label>
-                        <input type="password" id="llmApiKey" name="llmApiKey" placeholder="sk-..." autocomplete="off">
+                        <label>API Key（仅本地直连调试时需要）</label>
+                        <input type="password" id="llmApiKey" placeholder="sk-..." autocomplete="off">
 
                         <label>模型名称</label>
                         <input type="text" id="llmModel" placeholder="qwen-flash" value="qwen-flash">

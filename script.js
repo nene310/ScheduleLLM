@@ -25,23 +25,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Load Configuration from config.js if available
     if (window.AppConfig) {
-        const apiKeyInput = document.getElementById('llmApiKey');
         const baseUrlInput = document.getElementById('llmBaseUrl');
         const modelInput = document.getElementById('llmModel');
 
-        if (window.AppConfig.apiKey && window.AppConfig.apiKey !== "YOUR_API_KEY_HERE") {
-            apiKeyInput.value = window.AppConfig.apiKey;
-            // Lock the input to indicate it's managed
-            apiKeyInput.style.backgroundColor = "#f0fdf4"; // Light green
-            apiKeyInput.title = "已通过 config.js 自动配置";
-            // Optional: Don't disable it completely so user can override if needed, 
-            // but user asked for "avoid manual input". 
-            // Let's keep it editable but filled.
-        }
-        
-        if (window.AppConfig.baseUrl) baseUrlInput.value = window.AppConfig.baseUrl;
+        const llmApiUrl = window.AppConfig.llmApiUrl || window.AppConfig.backendUrl;
+        if (llmApiUrl) baseUrlInput.value = llmApiUrl;
         if (window.AppConfig.model) modelInput.value = window.AppConfig.model;
-        
+
         console.log("Environment configuration loaded.");
     }
 
@@ -87,14 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const llmConfigFields = document.getElementById('llmConfigFields');
     useLLMCheckbox.addEventListener('change', () => {
         llmConfigFields.style.display = useLLMCheckbox.checked ? 'block' : 'none';
-        if (useLLMCheckbox.checked) {
-            const savedApiKey = localStorage.getItem('scheduleag_api_key');
-            if (savedApiKey) document.getElementById('llmApiKey').value = savedApiKey;
-        }
-    });
-
-    document.getElementById('llmApiKey').addEventListener('input', (e) => {
-        localStorage.setItem('scheduleag_api_key', e.target.value);
     });
 });
 
@@ -1207,8 +1189,9 @@ async function generateSchedule() {
 
             scheduleLLMLog({ type: 'run_start', ...logCtx, rawRows: rawScheduleData.length });
 
-            if (!config.apiKey) {
-                alert("开启 LLM 识别需要填写 API Key");
+            const isProxy = /\/api\/llm\/?$/.test((config.baseUrl || '').trim());
+            if (!isProxy && !config.apiKey) {
+                alert("直连模式需要填写 API Key；生产环境建议使用后端 /api/llm 代理");
                 return;
             }
 

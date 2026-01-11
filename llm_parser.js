@@ -64,12 +64,38 @@ class LLMService {
 
         try {
             const tFetch0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-            const response = await fetch(`${this.config.baseUrl}/chat/completions`, {
+
+            const base = (this.config.baseUrl || '').replace(/\/$/, '');
+            const isProxy = /\/api\/llm$/.test(base);
+            const url = isProxy ? base : `${base}/chat/completions`;
+
+            const headers = { 'Content-Type': 'application/json' };
+            if (!isProxy) {
+                headers['Authorization'] = `Bearer ${this.config.apiKey}`;
+            } else if (this.config.apiKey) {
+                headers['Authorization'] = `Bearer ${this.config.apiKey}`;
+            }
+
+            if (isProxy) {
+                headers['X-Timestamp'] = String(Date.now());
+                const makeNonce = () => {
+                    if (typeof crypto !== 'undefined' && crypto && crypto.randomUUID) return crypto.randomUUID();
+                    if (typeof crypto !== 'undefined' && crypto && crypto.getRandomValues) {
+                        const b = new Uint8Array(16);
+                        crypto.getRandomValues(b);
+                        b[6] = (b[6] & 0x0f) | 0x40;
+                        b[8] = (b[8] & 0x3f) | 0x80;
+                        const hex = Array.from(b).map(x => x.toString(16).padStart(2, '0')).join('');
+                        return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+                    }
+                    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+                };
+                headers['X-Nonce'] = makeNonce();
+            }
+
+            const fetchOptions = {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.config.apiKey}`
-                },
+                headers,
                 body: JSON.stringify({
                     model: this.config.model,
                     messages: [
@@ -155,7 +181,10 @@ class LLMService {
                     ],
                     temperature: 0.1
                 })
-            });
+            };
+
+            if (isProxy) fetchOptions.credentials = 'include';
+            const response = await fetch(url, fetchOptions);
 
             if (!response.ok) {
                 const errData = await response.json();
