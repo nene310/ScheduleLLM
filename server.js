@@ -6,6 +6,7 @@ const env = (k, d = undefined) => (process.env[k] === undefined ? d : process.en
 
 const PORT = Number(env('PORT', '3000'));
 const REQUIRE_AUTH = String(env('REQUIRE_AUTH', 'true')).toLowerCase() !== 'false';
+const REQUIRE_SAME_ORIGIN = String(env('REQUIRE_SAME_ORIGIN', 'true')).toLowerCase() !== 'false';
 
 const LLM_BASE_URL = String(env('LLM_BASE_URL', 'https://dashscope.aliyuncs.com/compatible-mode/v1')).replace(/\/$/, '');
 const LLM_API_KEY = String(env('LLM_API_KEY', ''));
@@ -188,6 +189,40 @@ function corsHeaders(req) {
   };
 }
 
+function requestExpectedOrigin(req) {
+  const proto0 = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim();
+  const proto = proto0 || 'http';
+  const host = String(req.headers.host || '');
+  return host ? `${proto}://${host}` : '';
+}
+
+function originFromHeaderValue(v) {
+  const s = String(v || '').trim();
+  if (!s) return '';
+  try {
+    const u = new URL(s);
+    return `${u.protocol}//${u.host}`;
+  } catch {
+    return '';
+  }
+}
+
+function isSameOriginAllowed(req) {
+  const expected = requestExpectedOrigin(req);
+  if (!expected) return true;
+
+  const secFetchSite = String(req.headers['sec-fetch-site'] || '').trim();
+  if (secFetchSite && secFetchSite !== 'same-origin') return false;
+
+  const origin = originFromHeaderValue(req.headers.origin);
+  if (origin) return origin === expected;
+
+  const referer = originFromHeaderValue(req.headers.referer);
+  if (referer) return referer === expected;
+
+  return false;
+}
+
 function setAuthCookie(res, token) {
   const parts = [
     `${COOKIE_NAME}=${encodeURIComponent(token)}`,
@@ -323,6 +358,11 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === 'POST' && path === '/api/llm') {
+      if (REQUIRE_SAME_ORIGIN && !isSameOriginAllowed(req)) {
+        sendJson(res, 403, { error: 'forbidden', reason: 'origin_not_allowed', requestId: rid });
+        return;
+      }
+
       if (REQUIRE_AUTH) {
         const auth = getAuthSubject(req);
         if (!auth.ok || !auth.sub) {
