@@ -1,6 +1,6 @@
 /**
  * Auto-generated configuration file
- * Generated at: 2026-01-12T13:15:55.601Z
+ * Generated at: 2026-01-16T07:27:55.605Z
  */
 
 window.AppConfig = {

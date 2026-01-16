@@ -75,8 +75,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // LLM Toggle listener
     const useLLMCheckbox = document.getElementById('useLLM');
     const llmConfigFields = document.getElementById('llmConfigFields');
+    
+    // 状态标记：记录是否经历过“取消勾选”的操作
+    // 如果用户手动取消过勾选，再次勾选时不再自动弹出配置面板
+    let hasLLMBeenUnchecked = false;
+
     useLLMCheckbox.addEventListener('change', () => {
-        llmConfigFields.style.display = useLLMCheckbox.checked ? 'block' : 'none';
+        if (!useLLMCheckbox.checked) {
+            // 用户取消勾选 -> 隐藏配置面板，并标记状态
+            llmConfigFields.style.display = 'none';
+            hasLLMBeenUnchecked = true;
+        } else {
+            // 用户勾选 -> 仅当从未取消过（即首次勾选或初始状态）时才显示
+            // 如果已经取消过一次，再次勾选时保持隐藏（避免打扰用户）
+            if (!hasLLMBeenUnchecked) {
+                llmConfigFields.style.display = 'block';
+            } else {
+                llmConfigFields.style.display = 'none';
+            }
+        }
     });
 });
 
